@@ -46,7 +46,7 @@ export function PetDetailsStep({ previewUrl, onBack, onSubmit }: PetDetailsStepP
   }
 
   function handleSubmit() {
-    if (!canSubmit || species === "" || sexo === "") return
+    if (!canSubmit) return
     onSubmit({ petName, species, sexo, traits, anecdote })
   }
 
