@@ -2,6 +2,7 @@ import json
 import logging
 import shutil
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 from textwrap import TextWrapper
@@ -84,10 +85,20 @@ def _bytes_io(data: bytes):
     return BytesIO(data)
 
 
+def _resolve_binary(binary_name: str) -> str:
+    resolved = shutil.which(binary_name)
+    if not resolved:
+        raise MediaError(
+            f"No se encontró '{binary_name}' en el entorno de despliegue. Instala ffmpeg/ffprobe en el servidor."
+        )
+    return resolved
+
+
 def _probe_duration_seconds(audio_path: Path) -> float:
+    ffprobe_path = _resolve_binary("ffprobe")
     result = subprocess.run(
         [
-            "ffprobe",
+            ffprobe_path,
             "-v",
             "error",
             "-show_entries",
@@ -105,45 +116,80 @@ def _probe_duration_seconds(audio_path: Path) -> float:
     return float(data["format"]["duration"])
 
 
-def build_video(illustration_path: Path, audio_path: Path, out_path: Path) -> None:
+def _make_frame(image_path: Path, size: tuple[int, int]) -> Image.Image:
+    image = Image.open(image_path).convert("RGB")
+    return _cover_resize(image, size)
+
+
+def crop_grid_to_frames(image_bytes: bytes, out_dir: Path) -> list[Path]:
+    image = Image.open(_bytes_io(image_bytes)).convert("RGB")
+    width, height = image.size
+    cell_w = width // 2
+    cell_h = height // 2
+    frames: list[Path] = []
+    for row in range(2):
+        for col in range(2):
+            left = col * cell_w
+            top = row * cell_h
+            right = left + cell_w
+            bottom = top + cell_h
+            cropped = image.crop((left, top, right, bottom)).convert("RGB")
+            out_path = out_dir / f"scene_{len(frames) + 1}.png"
+            cropped.save(out_path, format="PNG")
+            frames.append(out_path)
+    return frames
+
+
+def build_video(illustration_paths: list[Path] | Path, audio_path: Path, out_path: Path) -> None:
     duration = _probe_duration_seconds(audio_path)
     total_frames = max(int(duration * VIDEO_FPS), VIDEO_FPS)
     width, height = VIDEO_SIZE
 
-    zoompan = (
-        f"scale={width * 2}:{height * 2}:force_original_aspect_ratio=increase,"
-        f"crop={width * 2}:{height * 2},"
-        f"zoompan=z='min(zoom+0.0008,1.15)':d={total_frames}:s={width}x{height}:fps={VIDEO_FPS}"
-    )
+    if isinstance(illustration_paths, (str, Path)):
+        illustration_paths = [Path(illustration_paths)]
+    resolved_paths = [Path(path) for path in illustration_paths]
+    if not resolved_paths:
+        raise MediaError("No hay imágenes para el video.")
 
-    cmd = [
-        "ffmpeg",
-        "-y",
-        "-loop",
-        "1",
-        "-i",
-        str(illustration_path),
-        "-i",
-        str(audio_path),
-        "-vf",
-        zoompan,
-        "-c:v",
-        "libx264",
-        "-tune",
-        "stillimage",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "192k",
-        "-pix_fmt",
-        "yuv420p",
-        "-shortest",
-        str(out_path),
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        logger.error("ffmpeg failed: %s", result.stderr[-2000:])
-        raise MediaError("No se pudo armar el video de la mascota.")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        frame_paths = [Path(path) for path in resolved_paths]
+        if not frame_paths:
+            raise MediaError("No hay imágenes para el video.")
+
+        ffmpeg_path = _resolve_binary("ffmpeg")
+        first_frame = frame_paths[0]
+        result = subprocess.run(
+            [
+                ffmpeg_path,
+                "-y",
+                "-loop",
+                "1",
+                "-i",
+                str(first_frame),
+                "-i",
+                str(audio_path),
+                "-t",
+                str(duration),
+                "-vf",
+                f"scale={width}:{height}:force_original_aspect_ratio=decrease",
+                "-c:v",
+                "libx264",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "192k",
+                "-pix_fmt",
+                "yuv420p",
+                "-shortest",
+                str(out_path),
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode != 0:
+            logger.error("ffmpeg failed: %s", result.stderr[-2000:])
+            raise MediaError("No se pudo armar el video de la mascota.")
 
 
 def cleanup_old_generations(max_age_minutes: int) -> None:

@@ -1,4 +1,5 @@
 import logging
+import re
 import uuid
 
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
@@ -8,7 +9,7 @@ from app.deps import get_elevenlabs_service, get_gemini_service
 from app.schemas import GenerateResponse, PetMetadata
 from app.services.elevenlabs_service import ElevenLabsError, ElevenLabsService
 from app.services.gemini_service import GeminiError, GeminiService
-from app.services.media_service import MediaError, build_card, build_video, new_generation_dir
+from app.services.media_service import MediaError, build_card, build_video, crop_grid_to_frames, new_generation_dir
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["generate"])
@@ -16,6 +17,13 @@ router = APIRouter(prefix="/api", tags=["generate"])
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 ALLOWED_SPECIES = {"perro", "gato", "otro"}
 MAX_TRAITS = 3
+
+
+def _prepare_monologue_text(monologue_text: str) -> str:
+    cleaned = re.sub(r"\s+", " ", monologue_text).strip()
+    if len(cleaned) > 240:
+        cleaned = cleaned[:240].rsplit(" ", 1)[0].rstrip(".,;:") + "..."
+    return cleaned
 
 
 @router.post("/generate", response_model=GenerateResponse)
@@ -54,8 +62,15 @@ async def generate(
 
     try:
         monologue = gemini.generate_monologue(image_bytes, photo.content_type, meta)
-        illustration_bytes = gemini.generate_illustration(image_bytes, photo.content_type, meta)
-        audio_bytes = elevenlabs.synthesize(monologue.monologo)
+        illustrations_bytes = gemini.generate_illustrations(
+            image_bytes,
+            photo.content_type,
+            meta,
+            monologue.monologo,
+            count=1,
+        )
+        prepared_monologue = _prepare_monologue_text(monologue.monologo)
+        audio_bytes = elevenlabs.synthesize(prepared_monologue, species=meta.species)
     except (GeminiError, ElevenLabsError) as exc:
         raise HTTPException(502, str(exc)) from exc
 
@@ -64,19 +79,21 @@ async def generate(
     card_path = gen_dir / "card.png"
     video_path = gen_dir / "video.mp4"
 
-    illustration_path.write_bytes(illustration_bytes)
+    illustration_paths = crop_grid_to_frames(illustrations_bytes[0], gen_dir)
+    if illustration_paths:
+        illustration_path.write_bytes(illustration_paths[0].read_bytes())
     audio_path.write_bytes(audio_bytes)
 
     try:
-        build_card(illustration_bytes, monologue.titulo, monologue.monologo, card_path)
-        build_video(illustration_path, audio_path, video_path)
+        build_card(illustrations_bytes[0], monologue.titulo, prepared_monologue, card_path)
+        build_video(illustration_paths, audio_path, video_path)
     except MediaError as exc:
         raise HTTPException(502, str(exc)) from exc
 
     return GenerateResponse(
         id=generation_id,
         title=monologue.titulo,
-        monologue=monologue.monologo,
+        monologue=prepared_monologue,
         illustration_url=f"/media/{generation_id}/illustration.png",
         card_url=f"/media/{generation_id}/card.png",
         audio_url=f"/media/{generation_id}/audio.mp3",

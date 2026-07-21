@@ -36,15 +36,33 @@ Reglas:
 - Tono tierno y humorístico a la vez, nunca cruel ni sarcástico de forma pesada.
 - Basate en rasgos visibles reales de la foto (color, tamaño, expresión, entorno) y en la
   personalidad indicada para que se sienta específico, no genérico.
-- Entre 60 y 100 palabras.
+- Debe sonar breve, claro y muy expresivo, idealmente entre 20 y 40 palabras para que el audio
+  dure menos de 20 segundos.
 - Devolvé también un título corto y pegadizo (máximo 6 palabras) para la tarjeta.
 
 Respondé exclusivamente en el formato JSON solicitado."""
 
 
-def build_illustration_prompt(meta: PetMetadata) -> str:
+def build_illustration_prompt(meta: PetMetadata, scene_hint: str = "", monologue: str = "") -> str:
+    focus = f"\nEnfocá la escena en esta idea del monólogo: {monologue[:220]}" if monologue else ""
+    scene = f"\nEscena sugerida: {scene_hint}" if scene_hint else ""
+
     return f"""Generá una ilustración tierna, estilo caricatura/acuarela suave, de la mascota
 de la foto adjunta. Mantené sus rasgos distintivos reales (color de pelaje o pelo,
 manchas, forma de orejas, tamaño). La expresión debe transmitir personalidad
 {_traits_text(meta.traits)}. Fondo simple y cálido, sin texto, sin marcas de agua,
-formato cuadrado, apto para compartir en redes sociales."""
+formato cuadrado, apto para compartir en redes sociales.
+
+IMPORTANTE: NO generes una sola escena grande ni una imagen continua. Debe ser un collage
+visual en cuadrícula 2x2 con cuatro paneles iguales, organizados en 2 filas y 2 columnas,
+con espacio claro entre ellos. Cada panel debe representar una parte distinta del monólogo y
+debe corresponder a una idea concreta del texto.
+- Panel 1: inicio o introducción.
+- Panel 2: emoción o giro del monólogo.
+- Panel 3: momento concreto o divertido.
+- Panel 4: cierre o resolución.
+
+Usá el texto del monólogo como guía para decidir qué pasa en cada panel. No mezcles todo en
+una sola escena. La composición debe verse como cuatro momentos separados, no como una única
+ilustración grande. Es obligatorio que la imagen NO tenga texto, NO tenga letras, NO tenga
+títulos, NO tenga bocadillos ni marcas de agua.{scene}{focus}"""
