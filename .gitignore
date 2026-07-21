@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg-info/
+.venv/
+venv/
+env/
+.ENV/
+.python-version
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Virtual environments (backend/frontend)
+backend/.venv/
+
+
+# Dependency installs
+node_modules/
+frontend/node_modules/
+backend/.pytest_cache/
+
+# FastAPI / backend generated assets
+backend/app/generated/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Frontend build output
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.vite/
