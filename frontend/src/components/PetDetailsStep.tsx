@@ -7,12 +7,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { TRAITS, type PetDetails, type Species } from "@/lib/types"
+import { TRAITS, type PetDetails, type Sex, type Species } from "@/lib/types"
 
 const SPECIES_OPTIONS: { value: Species; label: string; emoji: string }[] = [
   { value: "perro", label: "Perro", emoji: "🐶" },
   { value: "gato", label: "Gato", emoji: "🐱" },
   { value: "otro", label: "Otro", emoji: "🐾" },
+]
+
+const SEXO_OPTIONS: { value: Sex; label: string; emoji: string }[] = [
+  { value: "macho", label: "Macho", emoji: "♂️" },
+  { value: "hembra", label: "Hembra", emoji: "♀️" },
 ]
 
 const MAX_TRAITS = 3
@@ -25,11 +30,12 @@ interface PetDetailsStepProps {
 
 export function PetDetailsStep({ previewUrl, onBack, onSubmit }: PetDetailsStepProps) {
   const [species, setSpecies] = useState<Species | "">("")
+  const [sexo, setSexo] = useState<Sex | "">("")
   const [traits, setTraits] = useState<string[]>([])
   const [petName, setPetName] = useState("")
   const [anecdote, setAnecdote] = useState("")
 
-  const canSubmit = species !== "" && traits.length > 0
+  const canSubmit = species !== "" && sexo !== "" && traits.length > 0
 
   function toggleTrait(key: string) {
     setTraits((prev) => {
@@ -40,8 +46,8 @@ export function PetDetailsStep({ previewUrl, onBack, onSubmit }: PetDetailsStepP
   }
 
   function handleSubmit() {
-    if (!canSubmit) return
-    onSubmit({ petName, species, traits, anecdote })
+    if (!canSubmit || species === "" || sexo === "") return
+    onSubmit({ petName, species, sexo, traits, anecdote })
   }
 
   return (
@@ -84,7 +90,28 @@ export function PetDetailsStep({ previewUrl, onBack, onSubmit }: PetDetailsStepP
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>2. ¿Cómo es su personalidad? (hasta 3)</Label>
+        <Label>2. ¿Macho o hembra?</Label>
+        <ToggleGroup
+          type="single"
+          value={sexo}
+          onValueChange={(value) => setSexo((value as Sex) || "")}
+          className="justify-start gap-2"
+        >
+          {SEXO_OPTIONS.map((opt) => (
+            <ToggleGroupItem
+              key={opt.value}
+              value={opt.value}
+              variant="outline"
+              className="rounded-full px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              {opt.emoji} {opt.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>3. ¿Cómo es su personalidad? (hasta 3)</Label>
         <div className="flex flex-wrap gap-2">
           {TRAITS.map((trait) => {
             const selected = traits.includes(trait.key)

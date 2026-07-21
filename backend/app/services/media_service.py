@@ -156,22 +156,65 @@ def build_video(illustration_paths: list[Path] | Path, audio_path: Path, out_pat
         if not frame_paths:
             raise MediaError("No hay imágenes para el video.")
 
+        frame_paths = frame_paths[:4]
+        if len(frame_paths) == 1:
+            frame_paths = frame_paths * 2
+
         ffmpeg_path = _resolve_binary("ffmpeg")
-        first_frame = frame_paths[0]
+        segment_duration = max(duration / len(frame_paths), 1.0)
+        transition_duration = 0.5
+        # Pad each looped-image input beyond its nominal segment so frame
+        # quantization can't make it hit EOF before the next xfade's offset
+        # is reached (which would truncate the whole chain right there).
+        input_pad = 0.3
+        input_args: list[str] = []
+        filter_parts: list[str] = []
+        stream_names: list[str] = []
+
+        for idx, frame_path in enumerate(frame_paths):
+            input_args.extend(
+                ["-loop", "1", "-t", str(segment_duration + input_pad), "-i", str(frame_path)]
+            )
+            stream_names.append(f"v{idx}")
+            filter_parts.append(
+                f"[{idx}:v]scale={width}:{height}:force_original_aspect_ratio=decrease,setsar=1,format=yuv420p[{stream_names[-1]}]"
+            )
+
+        if len(frame_paths) == 2:
+            filter_complex = ";".join(filter_parts) + f";[{stream_names[0]}][{stream_names[1]}]xfade=transition=fade:duration={transition_duration}:offset={segment_duration - transition_duration}[pretrim]"
+        else:
+            filter_chain = []
+            previous = stream_names[0]
+            for idx in range(1, len(frame_paths)):
+                offset = segment_duration * idx - transition_duration
+                filter_chain.append(
+                    f"[{previous}][{stream_names[idx]}]xfade=transition=fade:duration={transition_duration}:offset={offset}[tmp{idx}]"
+                )
+                previous = f"tmp{idx}"
+            filter_complex = ";".join(filter_parts + filter_chain) + f";[{previous}]copy[pretrim]"
+
+        # The xfade chain naturally ends transition_duration short of the full
+        # audio length (each crossfade eats into the timeline). Hold the last
+        # frame for that gap instead of trimming, so -shortest never has to
+        # cut into the audio track and clip the last word.
+        filter_complex += (
+            f";[pretrim]tpad=stop_mode=clone:stop_duration={transition_duration},"
+            f"trim=duration={duration},format=yuv420p[outv]"
+        )
+
         result = subprocess.run(
             [
                 ffmpeg_path,
                 "-y",
-                "-loop",
-                "1",
-                "-i",
-                str(first_frame),
+                *input_args,
                 "-i",
                 str(audio_path),
-                "-t",
-                str(duration),
-                "-vf",
-                f"scale={width}:{height}:force_original_aspect_ratio=decrease",
+                "-filter_complex",
+                filter_complex,
+                "-map",
+                "[outv]",
+                "-map",
+                f"{len(frame_paths)}:a",
                 "-c:v",
                 "libx264",
                 "-c:a",

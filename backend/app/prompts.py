@@ -28,6 +28,7 @@ interno de la mascota sobre su humano/a.
 Datos:
 - Nombre: {name}
 - Especie: {meta.species}
+- Sexo: {meta.sexo}
 - Personalidad: {_traits_text(meta.traits)}
 {anecdote_line}
 

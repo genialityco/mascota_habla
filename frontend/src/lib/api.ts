@@ -9,6 +9,7 @@ export async function generatePetVoice(photo: File, details: PetDetails): Promis
   form.append("photo", photo)
   form.append("pet_name", details.petName)
   form.append("species", details.species)
+  form.append("sexo", details.sexo)
   form.append("traits", details.traits.join(","))
   form.append("anecdote", details.anecdote)
 

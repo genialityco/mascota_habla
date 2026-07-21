@@ -3,11 +3,13 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 Species = Literal["perro", "gato", "otro"]
+Sex = Literal["macho", "hembra"]
 
 
 class PetMetadata(BaseModel):
     pet_name: str = ""
     species: Species
+    sexo: Sex
     traits: list[str] = Field(default_factory=list)
     anecdote: str = ""
 

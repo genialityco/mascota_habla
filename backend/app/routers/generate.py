@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api", tags=["generate"])
 
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 ALLOWED_SPECIES = {"perro", "gato", "otro"}
+ALLOWED_SEXO = {"macho", "hembra"}
 MAX_TRAITS = 3
 
 
@@ -30,6 +31,7 @@ def _prepare_monologue_text(monologue_text: str) -> str:
 async def generate(
     photo: UploadFile,
     species: str = Form(...),
+    sexo: str = Form(...),
     pet_name: str = Form(""),
     traits: str = Form(""),
     anecdote: str = Form(""),
@@ -41,6 +43,8 @@ async def generate(
         raise HTTPException(400, "Formato de imagen no soportado. Usá JPG, PNG o WEBP.")
     if species not in ALLOWED_SPECIES:
         raise HTTPException(400, "Especie inválida.")
+    if sexo not in ALLOWED_SEXO:
+        raise HTTPException(400, "Sexo inválido.")
 
     image_bytes = await photo.read()
     max_bytes = settings.max_upload_mb * 1024 * 1024
@@ -53,6 +57,7 @@ async def generate(
     meta = PetMetadata(
         pet_name=pet_name.strip(),
         species=species,  # type: ignore[arg-type]
+        sexo=sexo,  # type: ignore[arg-type]
         traits=trait_list,
         anecdote=anecdote.strip(),
     )
@@ -70,7 +75,7 @@ async def generate(
             count=1,
         )
         prepared_monologue = _prepare_monologue_text(monologue.monologo)
-        audio_bytes = elevenlabs.synthesize(prepared_monologue, species=meta.species)
+        audio_bytes = elevenlabs.synthesize(prepared_monologue, species=meta.species, sexo=meta.sexo)
     except (GeminiError, ElevenLabsError) as exc:
         raise HTTPException(502, str(exc)) from exc
 

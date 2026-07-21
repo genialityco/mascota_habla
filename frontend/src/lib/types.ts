@@ -1,4 +1,5 @@
 export type Species = "perro" | "gato" | "otro"
+export type Sex = "macho" | "hembra"
 
 export interface Trait {
   key: string
@@ -19,6 +20,7 @@ export const TRAITS: Trait[] = [
 export interface PetDetails {
   petName: string
   species: Species
+  sexo: Sex
   traits: string[]
   anecdote: string
 }

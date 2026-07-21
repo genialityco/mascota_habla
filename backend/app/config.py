@@ -17,6 +17,8 @@ class Settings(BaseSettings):
 
     elevenlabs_api_key: str
     elevenlabs_voice_id: str
+    elevenlabs_voice_id_macho: str = ""
+    elevenlabs_voice_id_hembra: str = ""
     elevenlabs_model_id: str = "eleven_multilingual_v2"
 
     cors_origins: str = "http://localhost:5173"
