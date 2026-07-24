@@ -11,6 +11,31 @@ TRAIT_LABELS = {
     "consentido": "consentido/a",
 }
 
+AGE_STAGE_LABELS = {
+    "cachorro": "cachorro/a",
+    "adulto": "adulto/a",
+    "senior": "mayor/senior",
+}
+
+PRESENCE_LABELS = {
+    "siempre": "siempre está atento/a y presente para su dueño/a",
+    "a_veces": "está presente a veces, pero también tiene su espacio propio",
+    "independiente": "es bastante independiente",
+}
+
+HUNGER_BEHAVIOR_LABELS = {
+    "ladra_pide": "pide la comida ladrando o insistiendo sin parar",
+    "espera_paciente": "espera la comida con paciencia, calladito/a",
+    "sigue_por_todos_lados": "sigue a su dueño/a por todos lados hasta que le da de comer",
+}
+
+CONTRIBUTION_LABELS = {
+    "paz": "paz",
+    "alegria": "alegría",
+    "consuelo": "consuelo",
+    "compania": "compañía",
+}
+
 
 def _traits_text(traits: list[str]) -> str:
     labels = [TRAIT_LABELS.get(t, t) for t in traits]
@@ -19,8 +44,15 @@ def _traits_text(traits: list[str]) -> str:
 
 def build_monologue_prompt(meta: PetMetadata) -> str:
     name = meta.pet_name.strip() or "esta mascota"
+    owner_name = meta.owner_name.strip()
     anecdote = meta.anecdote.strip()
     anecdote_line = f'El dueño cuenta esta anécdota: "{anecdote}".' if anecdote else ""
+    owner_line = (
+        f'- Nombre del dueño/a: {owner_name} (dirigite a él/ella por su nombre en vez de decir '
+        f'"mi humano/a" genérico)'
+        if owner_name
+        else ""
+    )
 
     return f"""Mirá la foto adjunta de una mascota y escribí, en español, el monólogo
 interno de la mascota sobre su humano/a.
@@ -29,14 +61,19 @@ Datos:
 - Nombre: {name}
 - Especie: {meta.species}
 - Sexo: {meta.sexo}
+- Edad: {AGE_STAGE_LABELS.get(meta.age_stage, meta.age_stage)}
 - Personalidad: {_traits_text(meta.traits)}
+- Vínculo con su dueño/a: {PRESENCE_LABELS.get(meta.presence, meta.presence)}
+- Cuando tiene hambre: {HUNGER_BEHAVIOR_LABELS.get(meta.hunger_behavior, meta.hunger_behavior)}
+- Lo que más le aporta a su dueño/a: {CONTRIBUTION_LABELS.get(meta.contribution, meta.contribution)}
+{owner_line}
 {anecdote_line}
 
 Reglas:
 - Primera persona, como si la mascota hablara/pensara.
 - Tono tierno y humorístico a la vez, nunca cruel ni sarcástico de forma pesada.
-- Basate en rasgos visibles reales de la foto (color, tamaño, expresión, entorno) y en la
-  personalidad indicada para que se sienta específico, no genérico.
+- Basate en rasgos visibles reales de la foto (color, tamaño, expresión, entorno), en la
+  personalidad y en el vínculo indicado para que se sienta específico, no genérico.
 - Debe sonar breve, claro y muy expresivo, idealmente entre 20 y 40 palabras para que el audio
   dure menos de 20 segundos.
 - Devolvé también un título corto y pegadizo (máximo 6 palabras) para la tarjeta.

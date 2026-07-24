@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,11 +16,17 @@ class Settings(BaseSettings):
     gemini_text_model: str = "gemini-2.5-flash"
     gemini_image_model: str = "gemini-2.5-flash-image"
 
-    elevenlabs_api_key: str
-    elevenlabs_voice_id: str
+    tts_provider: Literal["elevenlabs", "gemini"] = "elevenlabs"
+
+    elevenlabs_api_key: str = ""
+    elevenlabs_voice_id: str = ""
     elevenlabs_voice_id_macho: str = ""
     elevenlabs_voice_id_hembra: str = ""
     elevenlabs_model_id: str = "eleven_multilingual_v2"
+
+    gemini_tts_model: str = "gemini-2.5-flash-preview-tts"
+    gemini_tts_voices_macho: str = "Puck,Fenrir,Orus"
+    gemini_tts_voices_hembra: str = "Kore,Aoede,Leda"
 
     cors_origins: str = "http://localhost:5173"
 
