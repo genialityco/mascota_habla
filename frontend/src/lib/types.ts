@@ -1,5 +1,9 @@
 export type Species = "perro" | "gato" | "otro"
 export type Sex = "macho" | "hembra"
+export type AgeStage = "cachorro" | "adulto" | "senior"
+export type Presence = "siempre" | "a_veces" | "independiente"
+export type HungerBehavior = "ladra_pide" | "espera_paciente" | "sigue_por_todos_lados"
+export type Contribution = "paz" | "alegria" | "consuelo" | "compania"
 
 export interface Trait {
   key: string
@@ -19,9 +23,14 @@ export const TRAITS: Trait[] = [
 
 export interface PetDetails {
   petName: string
+  ownerName: string
   species: Species
   sexo: Sex
+  ageStage: AgeStage
   traits: string[]
+  presence: Presence
+  hungerBehavior: HungerBehavior
+  contribution: Contribution
   anecdote: string
 }
 

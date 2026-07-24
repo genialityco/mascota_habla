@@ -7,7 +7,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { TRAITS, type PetDetails, type Sex, type Species } from "@/lib/types"
+import {
+  TRAITS,
+  type AgeStage,
+  type Contribution,
+  type HungerBehavior,
+  type PetDetails,
+  type Presence,
+  type Sex,
+  type Species,
+} from "@/lib/types"
 
 const SPECIES_OPTIONS: { value: Species; label: string; emoji: string }[] = [
   { value: "perro", label: "Perro", emoji: "🐶" },
@@ -18,6 +27,31 @@ const SPECIES_OPTIONS: { value: Species; label: string; emoji: string }[] = [
 const SEXO_OPTIONS: { value: Sex; label: string; emoji: string }[] = [
   { value: "macho", label: "Macho", emoji: "♂️" },
   { value: "hembra", label: "Hembra", emoji: "♀️" },
+]
+
+const AGE_OPTIONS: { value: AgeStage; label: string; emoji: string }[] = [
+  { value: "cachorro", label: "Cachorro/a", emoji: "🐣" },
+  { value: "adulto", label: "Adulto/a", emoji: "🐾" },
+  { value: "senior", label: "Senior", emoji: "🦴" },
+]
+
+const PRESENCE_OPTIONS: { value: Presence; label: string }[] = [
+  { value: "siempre", label: "Siempre está para mí" },
+  { value: "a_veces", label: "A veces, tiene su espacio" },
+  { value: "independiente", label: "Es bastante independiente" },
+]
+
+const HUNGER_OPTIONS: { value: HungerBehavior; label: string }[] = [
+  { value: "ladra_pide", label: "Ladra o insiste sin parar" },
+  { value: "espera_paciente", label: "Espera con paciencia" },
+  { value: "sigue_por_todos_lados", label: "Me sigue a todos lados" },
+]
+
+const CONTRIBUTION_OPTIONS: { value: Contribution; label: string; emoji: string }[] = [
+  { value: "paz", label: "Paz", emoji: "🕊️" },
+  { value: "alegria", label: "Alegría", emoji: "🎉" },
+  { value: "consuelo", label: "Consuelo", emoji: "🤗" },
+  { value: "compania", label: "Compañía", emoji: "🐾" },
 ]
 
 const MAX_TRAITS = 3
@@ -31,11 +65,23 @@ interface PetDetailsStepProps {
 export function PetDetailsStep({ previewUrl, onBack, onSubmit }: PetDetailsStepProps) {
   const [species, setSpecies] = useState<Species | "">("")
   const [sexo, setSexo] = useState<Sex | "">("")
+  const [ageStage, setAgeStage] = useState<AgeStage | "">("")
   const [traits, setTraits] = useState<string[]>([])
+  const [presence, setPresence] = useState<Presence | "">("")
+  const [hungerBehavior, setHungerBehavior] = useState<HungerBehavior | "">("")
+  const [contribution, setContribution] = useState<Contribution | "">("")
   const [petName, setPetName] = useState("")
+  const [ownerName, setOwnerName] = useState("")
   const [anecdote, setAnecdote] = useState("")
 
-  const canSubmit = species !== "" && sexo !== "" && traits.length > 0
+  const canSubmit =
+    species !== "" &&
+    sexo !== "" &&
+    ageStage !== "" &&
+    traits.length > 0 &&
+    presence !== "" &&
+    hungerBehavior !== "" &&
+    contribution !== ""
 
   function toggleTrait(key: string) {
     setTraits((prev) => {
@@ -47,7 +93,18 @@ export function PetDetailsStep({ previewUrl, onBack, onSubmit }: PetDetailsStepP
 
   function handleSubmit() {
     if (!canSubmit) return
-    onSubmit({ petName, species, sexo, traits, anecdote })
+    onSubmit({
+      petName,
+      ownerName,
+      species,
+      sexo,
+      ageStage,
+      traits,
+      presence,
+      hungerBehavior,
+      contribution,
+      anecdote,
+    })
   }
 
   return (
@@ -64,8 +121,30 @@ export function PetDetailsStep({ previewUrl, onBack, onSubmit }: PetDetailsStepP
         />
         <div>
           <h2 className="font-display text-xl font-semibold">Contanos de ella/él</h2>
-          <p className="text-sm text-muted-foreground">Con 2 toques alcanza ✌️</p>
+          <p className="text-sm text-muted-foreground">Son todos toques rápidos ✌️</p>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="pet-name">Nombre de la mascota (opcional)</Label>
+        <Input
+          id="pet-name"
+          placeholder="Ej: Firulais"
+          value={petName}
+          onChange={(e) => setPetName(e.target.value)}
+          maxLength={40}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="owner-name">Tu nombre (opcional)</Label>
+        <Input
+          id="owner-name"
+          placeholder="Ej: Juan"
+          value={ownerName}
+          onChange={(e) => setOwnerName(e.target.value)}
+          maxLength={40}
+        />
       </div>
 
       <div className="flex flex-col gap-2">
@@ -111,7 +190,28 @@ export function PetDetailsStep({ previewUrl, onBack, onSubmit }: PetDetailsStepP
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>3. ¿Cómo es su personalidad? (hasta 3)</Label>
+        <Label>3. ¿Qué edad tiene?</Label>
+        <ToggleGroup
+          type="single"
+          value={ageStage}
+          onValueChange={(value) => setAgeStage((value as AgeStage) || "")}
+          className="justify-start gap-2"
+        >
+          {AGE_OPTIONS.map((opt) => (
+            <ToggleGroupItem
+              key={opt.value}
+              value={opt.value}
+              variant="outline"
+              className="rounded-full px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              {opt.emoji} {opt.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>4. ¿Cómo es su personalidad? (hasta 3)</Label>
         <div className="flex flex-wrap gap-2">
           {TRAITS.map((trait) => {
             const selected = traits.includes(trait.key)
@@ -130,14 +230,66 @@ export function PetDetailsStep({ previewUrl, onBack, onSubmit }: PetDetailsStepP
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="pet-name">Nombre (opcional)</Label>
-        <Input
-          id="pet-name"
-          placeholder="Ej: Firulais"
-          value={petName}
-          onChange={(e) => setPetName(e.target.value)}
-          maxLength={40}
-        />
+        <Label>5. ¿Ves que tu mascota siempre está para vos?</Label>
+        <ToggleGroup
+          type="single"
+          value={presence}
+          onValueChange={(value) => setPresence((value as Presence) || "")}
+          className="flex-wrap justify-start gap-2"
+        >
+          {PRESENCE_OPTIONS.map((opt) => (
+            <ToggleGroupItem
+              key={opt.value}
+              value={opt.value}
+              variant="outline"
+              className="rounded-full px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              {opt.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>6. Cuando tiene hambre...</Label>
+        <ToggleGroup
+          type="single"
+          value={hungerBehavior}
+          onValueChange={(value) => setHungerBehavior((value as HungerBehavior) || "")}
+          className="flex-wrap justify-start gap-2"
+        >
+          {HUNGER_OPTIONS.map((opt) => (
+            <ToggleGroupItem
+              key={opt.value}
+              value={opt.value}
+              variant="outline"
+              className="rounded-full px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              {opt.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>7. ¿Qué te aporta?</Label>
+        <ToggleGroup
+          type="single"
+          value={contribution}
+          onValueChange={(value) => setContribution((value as Contribution) || "")}
+          className="justify-start gap-2"
+        >
+          {CONTRIBUTION_OPTIONS.map((opt) => (
+            <ToggleGroupItem
+              key={opt.value}
+              value={opt.value}
+              variant="outline"
+              className="rounded-full px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              {opt.emoji} {opt.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </div>
 
       <div className="flex flex-col gap-2">

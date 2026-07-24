@@ -8,9 +8,14 @@ export async function generatePetVoice(photo: File, details: PetDetails): Promis
   const form = new FormData()
   form.append("photo", photo)
   form.append("pet_name", details.petName)
+  form.append("owner_name", details.ownerName)
   form.append("species", details.species)
   form.append("sexo", details.sexo)
+  form.append("age_stage", details.ageStage)
   form.append("traits", details.traits.join(","))
+  form.append("presence", details.presence)
+  form.append("hunger_behavior", details.hungerBehavior)
+  form.append("contribution", details.contribution)
   form.append("anecdote", details.anecdote)
 
   const response = await fetch(`${API_BASE_URL}/api/generate`, {
